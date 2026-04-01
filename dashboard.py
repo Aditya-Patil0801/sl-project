@@ -3,12 +3,39 @@ import serial
 import pandas as pd
 from datetime import datetime
 import time
+import mysql.connector   # 🔥 NEW
 
 # Config
-PORT = 'COM5'   # 🔴 change if needed
+PORT = 'COM5'
 BAUD = 9600
 
-# Serial connection (cached so it doesn't reconnect every time)
+# 🔥 MySQL INSERT FUNCTION
+def insert_data(air, co, temp, hum):
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="Aditya@369",   
+            database="air_quality"
+        )
+
+        cursor = conn.cursor()
+
+        query = """
+        INSERT INTO sensor_data (time, air, co, temp, humidity)
+        VALUES (NOW(), %s, %s, %s, %s)
+        """
+
+        cursor.execute(query, (air, co, temp, hum))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print("DB Error:", e)
+
+# Serial connection
 @st.cache_resource
 def get_serial():
     return serial.Serial(PORT, BAUD, timeout=1)
@@ -19,11 +46,11 @@ except:
     st.error("⚠️ Could not connect to Arduino (Check COM port / close Serial Monitor)")
     st.stop()
 
-# Session state (persistent data)
+# Session state
 if "data" not in st.session_state:
     st.session_state.data = []
 
-# Page UI
+# UI
 st.set_page_config(page_title="Air Quality Dashboard", layout="wide")
 
 st.title("🌍 Smart Air Quality Monitoring System")
@@ -33,7 +60,7 @@ st.markdown("### Real-time Environmental Monitoring Dashboard")
 if st.button("🔄 Reset Data"):
     st.session_state.data.clear()
 
-# Read ONE line from Arduino
+# Read data from Arduino
 line = ser.readline().decode('utf-8').strip()
 
 if line:
@@ -54,7 +81,11 @@ if line:
                 "Humidity": hum
             }
 
+            # Store locally
             st.session_state.data.append(record)
+
+            # 🔥 STORE IN DATABASE
+            insert_data(air, co, temp, hum)
 
         except:
             pass
@@ -97,7 +128,7 @@ if not df.empty:
     st.subheader("📂 All Data")
     st.dataframe(df, height=400)
 
-    # Download CSV (NOW WORKS PERFECTLY)
+    # Download CSV
     st.download_button(
         label="📥 Download CSV",
         data=df.to_csv(index=False),
@@ -105,6 +136,6 @@ if not df.empty:
         mime="text/csv"
     )
 
-# Auto refresh every 3 seconds (SAFE METHOD)
+# Auto refresh
 time.sleep(3)
 st.rerun()
