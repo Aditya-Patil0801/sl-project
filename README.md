@@ -117,4 +117,4 @@ Smart alert notifications
 
 This project successfully implements a real-time air quality monitoring system with database storage.
 
-It combines hardware and software to create a smart IoT solution capable of monitoring and analyzing environmental conditions
+It combines hardware and software to create a smart IoT solution capable of monitoring and analyzing environmental conditions.
